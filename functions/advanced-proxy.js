@@ -1,7 +1,6 @@
 export async function onRequest({ request }) {
   try {
-    const url = new URL(request.url);
-    const targetUrl = url.searchParams.get('url');
+    const targetUrl = getTargetUrl(request.url);
 
     if (!targetUrl) {
       return new Response('缺少目标URL参数', {
@@ -92,6 +91,27 @@ export async function onRequest({ request }) {
       }
     });
   }
+}
+
+function getTargetUrl(requestUrl) {
+  const { search } = new URL(requestUrl);
+  const match = search.match(/[?&]url=/);
+
+  if (!match) {
+    return null;
+  }
+
+  const targetUrl = search.slice(match.index + match[0].length);
+
+  if (/^https?%3A%2F%2F/i.test(targetUrl)) {
+    try {
+      return decodeURIComponent(targetUrl);
+    } catch (error) {
+      return targetUrl;
+    }
+  }
+
+  return targetUrl.replace(/%23/gi, '#');
 }
 
 /**

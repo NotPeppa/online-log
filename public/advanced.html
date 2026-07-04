@@ -180,8 +180,7 @@
                 new URL(url);
                 
                 // 构建代理链接
-                const encodedUrl = encodeURIComponent(url);
-                const proxyUrl = `/${proxyType}?url=${encodedUrl}`;
+                const proxyUrl = `/${proxyType}?url=${url.replace(/#/g, '%23')}`;
                 
                 proxyLink.href = proxyUrl;
                 proxyLink.textContent = proxyUrl;
