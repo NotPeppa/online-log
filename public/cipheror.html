@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EdgeOne Proxy</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #08111f;
+            --surface: rgba(11, 22, 40, 0.82);
+            --surface-strong: rgba(15, 30, 52, 0.96);
+            --text: #f7fbff;
+            --muted: #9fb1c9;
+            --line: rgba(158, 180, 209, 0.22);
+            --primary: #5eead4;
+            --primary-strong: #2dd4bf;
+            --accent: #8b5cf6;
+            --danger: #fb7185;
+            --success: #86efac;
+            --shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 12% 12%, rgba(94, 234, 212, 0.22), transparent 30%),
+                radial-gradient(circle at 85% 8%, rgba(139, 92, 246, 0.24), transparent 28%),
+                linear-gradient(135deg, #08111f 0%, #0d1730 48%, #101827 100%);
+            line-height: 1.6;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent 78%);
+        }
+
+        a {
+            color: inherit;
+        }
+
+        .page-shell {
+            position: relative;
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 32px 0;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 56px;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .brand-mark {
+            display: grid;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            border: 1px solid rgba(94, 234, 212, 0.45);
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(94, 234, 212, 0.22), rgba(139, 92, 246, 0.18));
+            box-shadow: 0 0 36px rgba(94, 234, 212, 0.18);
+        }
+
+        .brand-mark svg {
+            width: 23px;
+            height: 23px;
+        }
+
+        .topbar-link {
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 16px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            color: var(--muted);
+            text-decoration: none;
+            transition: border-color 180ms ease, color 180ms ease, background 180ms ease;
+        }
+
+        .topbar-link:hover,
+        .topbar-link:focus-visible {
+            color: var(--text);
+            border-color: rgba(94, 234, 212, 0.55);
+            background: rgba(94, 234, 212, 0.08);
+            outline: none;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 440px;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding: 8px 12px;
+            border: 1px solid rgba(94, 234, 212, 0.28);
+            border-radius: 999px;
+            background: rgba(94, 234, 212, 0.08);
+            color: #b7fff2;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .eyebrow::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--primary);
+            box-shadow: 0 0 16px var(--primary);
+        }
+
+        h1 {
+            margin: 0;
+            max-width: 760px;
+            font-size: clamp(42px, 7vw, 82px);
+            line-height: 0.95;
+            letter-spacing: -0.07em;
+        }
+
+        .hero-text {
+            max-width: 650px;
+            margin: 24px 0 0;
+            color: var(--muted);
+            font-size: clamp(17px, 2vw, 20px);
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .pill {
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 14px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            color: #d6e4f4;
+            background: rgba(255, 255, 255, 0.04);
+            font-size: 14px;
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            background: var(--surface);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(22px);
+        }
+
+        .proxy-card {
+            padding: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .card-title {
+            margin: 0;
+            font-size: 22px;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
+        }
+
+        .card-caption {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .status-chip {
+            align-self: flex-start;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(134, 239, 172, 0.12);
+            color: var(--success);
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #dbeafe;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .url-field {
+            position: relative;
+        }
+
+        .url-field svg {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            width: 20px;
+            height: 20px;
+            color: var(--muted);
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        input[type="url"] {
+            width: 100%;
+            min-height: 58px;
+            padding: 0 16px 0 48px;
+            border: 1px solid rgba(159, 177, 201, 0.28);
+            border-radius: 18px;
+            color: var(--text);
+            background: rgba(4, 10, 20, 0.58);
+            font: inherit;
+            outline: none;
+            transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+        }
+
+        input[type="url"]::placeholder {
+            color: #64748b;
+        }
+
+        input[type="url"]:focus {
+            border-color: var(--primary);
+            background: rgba(4, 10, 20, 0.78);
+            box-shadow: 0 0 0 4px rgba(94, 234, 212, 0.14);
+        }
+
+        .helper-text {
+            margin: 8px 0 18px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .proxy-options {
+            display: grid;
+            gap: 12px;
+            margin: 0 0 20px;
+        }
+
+        .proxy-option {
+            width: 100%;
+            min-height: 92px;
+            display: grid;
+            grid-template-columns: 42px 1fr;
+            gap: 14px;
+            padding: 16px;
+            border: 1px solid rgba(159, 177, 201, 0.22);
+            border-radius: 20px;
+            color: inherit;
+            background: rgba(255, 255, 255, 0.035);
+            text-align: left;
+            cursor: pointer;
+            transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+        }
+
+        .proxy-option:hover,
+        .proxy-option:focus-visible {
+            border-color: rgba(94, 234, 212, 0.5);
+            background: rgba(94, 234, 212, 0.07);
+            outline: none;
+        }
+
+        .proxy-option.active {
+            border-color: rgba(94, 234, 212, 0.78);
+            background: linear-gradient(135deg, rgba(94, 234, 212, 0.14), rgba(139, 92, 246, 0.1));
+        }
+
+        .option-icon {
+            display: grid;
+            place-items: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.07);
+            color: var(--primary);
+        }
+
+        .option-icon svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .option-title {
+            display: block;
+            margin: 0 0 4px;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .option-text {
+            display: block;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .submit-button {
+            width: 100%;
+            min-height: 56px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: 0;
+            border-radius: 18px;
+            color: #021414;
+            background: linear-gradient(135deg, var(--primary), var(--primary-strong));
+            font: inherit;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 18px 48px rgba(45, 212, 191, 0.24);
+            transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+        }
+
+        .submit-button:hover,
+        .submit-button:focus-visible {
+            transform: translateY(-1px);
+            filter: brightness(1.05);
+            box-shadow: 0 24px 56px rgba(45, 212, 191, 0.32);
+            outline: none;
+        }
+
+        .submit-button svg {
+            width: 19px;
+            height: 19px;
+        }
+
+        .error {
+            display: none;
+            margin: 14px 0 0;
+            padding: 12px 14px;
+            border: 1px solid rgba(251, 113, 133, 0.45);
+            border-radius: 16px;
+            color: #fecdd3;
+            background: rgba(251, 113, 133, 0.12);
+        }
+
+        .result {
+            display: none;
+            margin-top: 18px;
+            padding: 16px;
+            border: 1px solid rgba(134, 239, 172, 0.4);
+            border-radius: 18px;
+            background: rgba(134, 239, 172, 0.1);
+        }
+
+        .result p {
+            margin: 0 0 10px;
+            color: #d9ffe4;
+            font-weight: 800;
+        }
+
+        .result a {
+            display: block;
+            color: var(--primary);
+            overflow-wrap: anywhere;
+            text-decoration: none;
+        }
+
+        .result a:hover,
+        .result a:focus-visible {
+            text-decoration: underline;
+            outline: none;
+        }
+
+        .insight-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-top: 46px;
+        }
+
+        .insight-card {
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.045);
+        }
+
+        .insight-card strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 15px;
+        }
+
+        .insight-card span {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .terminal-panel {
+            margin-top: 18px;
+            overflow: hidden;
+        }
+
+        .terminal-bar {
+            display: flex;
+            gap: 7px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .terminal-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            background: #64748b;
+        }
+
+        .terminal-dot:nth-child(1) { background: #fb7185; }
+        .terminal-dot:nth-child(2) { background: #facc15; }
+        .terminal-dot:nth-child(3) { background: #86efac; }
+
+        .terminal-body {
+            padding: 18px;
+            color: #c4d5ec;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .terminal-body span {
+            color: var(--primary);
+        }
+
+        .footer {
+            margin-top: 52px;
+            padding-top: 24px;
+            border-top: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 14px;
+            text-align: center;
+        }
+
+        @media (max-width: 940px) {
+            .topbar {
+                margin-bottom: 36px;
+            }
+
+            .hero {
+                grid-template-columns: 1fr;
+            }
+
+            .proxy-card {
+                order: -1;
+            }
+
+            .insight-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 560px) {
+            .page-shell {
+                width: min(100% - 24px, 1180px);
+                padding: 20px 0 28px;
+            }
+
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 14px;
+            }
+
+            .topbar-link {
+                width: 100%;
+            }
+
+            .proxy-card {
+                padding: 18px;
+                border-radius: 24px;
+            }
+
+            .card-header {
+                flex-direction: column;
+            }
+
+            .proxy-option {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                scroll-behavior: auto !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page-shell">
+        <header class="topbar" aria-label="页面导航">
+            <div class="brand">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"></path>
+                        <path d="M3.6 9h16.8"></path>
+                        <path d="M3.6 15h16.8"></path>
+                        <path d="M12 3c2.1 2.4 3.1 5.4 3.1 9S14.1 18.6 12 21c-2.1-2.4-3.1-5.4-3.1-9S9.9 5.4 12 3Z"></path>
+                    </svg>
+                </span>
+                <span>EdgeOne Proxy</span>
+            </div>
+            <a class="topbar-link" href="https://github.com/TencentEdgeOne/pages-templates" target="_blank" rel="noreferrer">查看 Pages 模板</a>
+        </header>
+
+        <section class="hero">
+            <div>
+                <span class="eyebrow">Edge Functions powered proxy</span>
+                <h1>把任意网址转换成边缘代理入口。</h1>
+                <p class="hero-text">输入完整 URL，选择标准转发或链接重写模式，即可生成可读、可分享的代理访问地址。</p>
+
+                <div class="hero-actions" aria-label="能力说明">
+                    <span class="pill">低延迟边缘转发</span>
+                    <span class="pill">支持 GET / POST</span>
+                    <span class="pill">HTML 链接重写</span>
+                </div>
+
+                <div class="insight-grid">
+                    <div class="insight-card">
+                        <strong>标准模式</strong>
+                        <span>适合获取单个页面、图片、接口或静态资源。</span>
+                    </div>
+                    <div class="insight-card">
+                        <strong>高级模式</strong>
+                        <span>自动替换页面链接，适合继续点击浏览。</span>
+                    </div>
+                    <div class="insight-card">
+                        <strong>可读链接</strong>
+                        <span>生成 /proxy?url=https://example.com 形式。</span>
+                    </div>
+                </div>
+
+                <div class="panel terminal-panel" aria-label="示例代理链接">
+                    <div class="terminal-bar" aria-hidden="true">
+                        <span class="terminal-dot"></span>
+                        <span class="terminal-dot"></span>
+                        <span class="terminal-dot"></span>
+                    </div>
+                    <div class="terminal-body">
+                        $ open <span>/advanced-proxy?url=https://example.com</span><br>
+                        response: proxied by EdgeOne Pages Functions
+                    </div>
+                </div>
+            </div>
+
+            <section class="panel proxy-card" aria-labelledby="proxyFormTitle">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title" id="proxyFormTitle">生成代理链接</h2>
+                        <p class="card-caption">必须包含 http:// 或 https://</p>
+                    </div>
+                    <span class="status-chip">Ready</span>
+                </div>
+
+                <form id="proxyForm" novalidate>
+                    <div class="form-group">
+                        <label for="url">目标网站地址</label>
+                        <div class="url-field">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M10 13a5 5 0 0 0 7.1 0l2.1-2.1a5 5 0 0 0-7.1-7.1L11 4.8"></path>
+                                <path d="M14 11a5 5 0 0 0-7.1 0l-2.1 2.1a5 5 0 0 0 7.1 7.1L13 19.2"></path>
+                            </svg>
+                            <input type="url" id="url" name="url" placeholder="https://example.com" autocomplete="url" required aria-describedby="urlHelper errorMessage">
+                        </div>
+                        <p class="helper-text" id="urlHelper">如果目标地址包含 #，页面会自动处理为可传递形式。</p>
+                    </div>
+
+                    <div class="proxy-options" role="radiogroup" aria-label="选择代理模式">
+                        <button class="proxy-option active" type="button" data-type="proxy" role="radio" aria-checked="true">
+                            <span class="option-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 12h16"></path>
+                                    <path d="m14 6 6 6-6 6"></path>
+                                </svg>
+                            </span>
+                            <span>
+                                <span class="option-title">标准代理模式</span>
+                                <span class="option-text">直接转发请求，适合快速访问单页或静态内容。</span>
+                            </span>
+                        </button>
+                        <button class="proxy-option" type="button" data-type="advanced-proxy" role="radio" aria-checked="false">
+                            <span class="option-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 3v18"></path>
+                                    <path d="M3 12h18"></path>
+                                    <path d="m16 8 4 4-4 4"></path>
+                                    <path d="m8 8-4 4 4 4"></path>
+                                </svg>
+                            </span>
+                            <span>
+                                <span class="option-title">高级代理模式</span>
+                                <span class="option-text">重写 HTML 内链接，适合在目标站点内连续浏览。</span>
+                            </span>
+                        </button>
+                    </div>
+
+                    <button class="submit-button" type="submit">
+                        生成代理链接
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M5 12h14"></path>
+                            <path d="m12 5 7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </form>
+
+                <p class="error" id="errorMessage" role="alert"></p>
+
+                <div class="result" id="resultContainer" aria-live="polite">
+                    <p>代理链接已生成</p>
+                    <a href="#" id="proxyLink" target="_blank" rel="noreferrer"></a>
+                </div>
+            </section>
+        </section>
+
+        <footer class="footer">
+            基于 EdgeOne Pages Functions 构建。请仅在合规、授权和研究场景中使用。
+        </footer>
+    </main>
+
+    <script>
+        let proxyType = 'proxy';
+
+        document.querySelectorAll('.proxy-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.proxy-option').forEach(opt => {
+                    opt.classList.remove('active');
+                    opt.setAttribute('aria-checked', 'false');
+                });
+
+                this.classList.add('active');
+                this.setAttribute('aria-checked', 'true');
+                proxyType = this.dataset.type;
+            });
+        });
+
+        document.getElementById('proxyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const url = document.getElementById('url').value.trim();
+            const errorMessage = document.getElementById('errorMessage');
+            const resultContainer = document.getElementById('resultContainer');
+            const proxyLink = document.getElementById('proxyLink');
+
+            errorMessage.style.display = 'none';
+
+            try {
+                const parsedUrl = new URL(url);
+
+                if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+                    throw new Error('invalid protocol');
+                }
+
+                const proxyUrl = `/${proxyType}?url=${url.replace(/#/g, '%23')}`;
+
+                proxyLink.href = proxyUrl;
+                proxyLink.textContent = proxyUrl;
+                resultContainer.style.display = 'block';
+                resultContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } catch (err) {
+                errorMessage.textContent = '请输入有效的网址，并包含 http:// 或 https://';
+                errorMessage.style.display = 'block';
+                resultContainer.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
